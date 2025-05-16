@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
-import { Order, Prisma } from 'generated/prisma';
+import { Order, Prisma } from '@prisma/client';
 import { PrismaService } from 'src/utils/prisma.service';
-import { CreateOrderDto } from './orders.interface';
+import { CreateOrderDto, UpdateOrderDto } from './orders.interface';
 
 @Injectable()
 export class OrdersService {
@@ -26,7 +26,11 @@ export class OrdersService {
       take,
       cursor,
       where,
-      orderBy,
+      orderBy: orderBy
+        ? {
+            [`${orderBy}`]: 'asc',
+          }
+        : undefined,
     });
   }
 
@@ -76,7 +80,7 @@ export class OrdersService {
 
   public async updateOrder(params: {
     where: Prisma.OrderWhereUniqueInput;
-    data: Prisma.OrderUpdateInput;
+    data: UpdateOrderDto;
   }): Promise<Order> {
     const { where, data } = params;
 
@@ -85,7 +89,11 @@ export class OrdersService {
     try {
       const updatedOrder = await this.prisma.order.update({
         data: {
-          ...data,
+          total: data.total,
+          userId: data.userId,
+          products: {
+            connect: data.products.map((product) => ({ id: product.id })),
+          },
           updatedAt: new Date(),
         },
         where,

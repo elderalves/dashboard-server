@@ -8,16 +8,13 @@ import {
   Param,
   ParseIntPipe,
   Patch,
+  Query,
 } from '@nestjs/common';
-import {
-  CreateOrderDto,
-  Order,
-  UpdateOrderDto,
-  User,
-} from './orders.interface';
+import { Order, UpdateOrderDto } from './orders.interface';
 import { OrdersService } from './orders.service';
+import { Prisma } from '@prisma/client';
 
-@Controller('orders')
+@Controller('/orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
   private readonly logger = new Logger(OrdersController.name);
@@ -33,9 +30,22 @@ export class OrdersController {
   // }
 
   @Get()
-  public async orders(): Promise<Omit<Order, 'products'>[]> {
+  public async orders(
+    @Query('take') take: number,
+    @Query('skip') skip: number,
+    @Query('cursor') cursor: Prisma.OrderWhereUniqueInput,
+    @Query('where') where: Prisma.OrderWhereInput,
+    @Query('orderBy') orderBy: Prisma.OrderOrderByWithRelationInput[],
+  ): Promise<Omit<Order, 'products'>[]> {
     try {
-      const orders = await this.ordersService.orders({});
+      this.logger.debug(take);
+      const orders = await this.ordersService.orders({
+        skip,
+        take,
+        cursor,
+        where,
+        orderBy,
+      });
       return orders;
     } catch (err) {
       if (err) {
@@ -50,7 +60,7 @@ export class OrdersController {
   public async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() order: UpdateOrderDto,
-  ): Promise<Order> {
+  ): Promise<Omit<Order, 'products'>> {
     try {
       return await this.ordersService.updateOrder({
         where: { id },
